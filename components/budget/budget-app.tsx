@@ -5,23 +5,16 @@ import useSWR from 'swr'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { getTransactions } from '@/app/actions/transactions'
-import { monthLabel } from '@/lib/format'
+import { currentMonth, monthLabel, shiftMonth } from '@/lib/format'
+import { cn } from '@/lib/utils'
 import { ChevronLeft, ChevronRight, Plus, X } from 'lucide-react'
 import { SummaryCards } from './summary-cards'
+import { StatsView } from './stats-view'
 import { TransactionForm } from './transaction-form'
 import { TransactionList } from './transaction-list'
 import type { ClientTransaction } from './types'
 
-function currentMonth(): string {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-}
-
-function shiftMonth(month: string, delta: number): string {
-  const [y, m] = month.split('-').map(Number)
-  const d = new Date(y, m - 1 + delta, 1)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-}
+type ViewTab = 'list' | 'stats'
 
 export function BudgetApp({
   initialData,
@@ -35,6 +28,7 @@ export function BudgetApp({
   )
   const [month, setMonth] = useState<string>(currentMonth())
   const [showForm, setShowForm] = useState(false)
+  const [tab, setTab] = useState<ViewTab>('list')
 
   const all = data ?? []
 
@@ -118,12 +112,47 @@ export function BudgetApp({
         </Card>
       )}
 
-      <div className="flex flex-col gap-3">
-        <h2 className="px-1 text-sm font-semibold text-muted-foreground">
+      {/* 내역 / 통계 탭 */}
+      <div className="grid grid-cols-2 gap-2 rounded-lg bg-muted p-1">
+        <button
+          type="button"
+          onClick={() => setTab('list')}
+          className={cn(
+            'rounded-md py-2 text-sm font-medium transition-colors',
+            tab === 'list'
+              ? 'bg-background text-foreground shadow-sm'
+              : 'text-muted-foreground',
+          )}
+        >
           내역
-        </h2>
-        <TransactionList transactions={monthTx} onChanged={() => mutate()} />
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab('stats')}
+          className={cn(
+            'rounded-md py-2 text-sm font-medium transition-colors',
+            tab === 'stats'
+              ? 'bg-background text-foreground shadow-sm'
+              : 'text-muted-foreground',
+          )}
+        >
+          통계
+        </button>
       </div>
+
+      {tab === 'list' ? (
+        <div className="flex flex-col gap-3">
+          <h2 className="px-1 text-sm font-semibold text-muted-foreground">
+            내역
+          </h2>
+          <TransactionList
+            transactions={monthTx}
+            onChanged={() => mutate()}
+          />
+        </div>
+      ) : (
+        <StatsView allTransactions={all} month={month} />
+      )}
 
       {/* 추가 플로팅 버튼 */}
       {!showForm && (
